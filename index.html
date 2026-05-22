@@ -1,40 +1,32 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Gör & Duyur — Görme Engelli Metin Okuyucu</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet"/>
   <style>
-    :root {
-      --bg:#0a0a0a; --surface:#141414; --surface2:#1e1e1e;
-      --accent:#FFD600; --accent2:#00E5FF; --accent3:#76FF03;
-      --danger:#FF3D00; --text:#FFFFFF; --muted:#AAAAAA; --radius:20px;
-    }
+    :root{--bg:#0a0a0a;--surface:#141414;--surface2:#1e1e1e;--accent:#FFD600;--accent2:#00E5FF;--accent3:#76FF03;--danger:#FF3D00;--text:#FFFFFF;--muted:#AAAAAA;--radius:20px}
     *{box-sizing:border-box;margin:0;padding:0}
     body{background:var(--bg);color:var(--text);font-family:'Atkinson Hyperlegible',sans-serif;min-height:100vh;-webkit-tap-highlight-color:transparent}
     #app{display:flex;flex-direction:column;padding:16px;gap:14px;max-width:600px;margin:0 auto}
     .header{text-align:center;padding:24px 0 8px}
     .header h1{font-size:30px;font-weight:700;color:var(--accent)}
     .header p{font-size:16px;color:var(--muted);margin-top:8px}
-
     .status-bar{background:var(--surface);border:2px solid var(--surface2);border-radius:var(--radius);padding:16px 20px;font-size:17px;font-weight:700;text-align:center;min-height:64px;display:flex;align-items:center;justify-content:center;gap:12px;transition:border-color .3s}
     .status-bar.listening{border-color:var(--accent2);animation:pulse 1.5s infinite}
     .status-bar.loading{border-color:var(--accent)}
     .status-bar.success{border-color:var(--accent3)}
+    .status-bar.error{border-color:var(--danger)}
     @keyframes pulse{0%,100%{border-color:var(--accent2)}50%{border-color:transparent}}
     .dot{width:14px;height:14px;border-radius:50%;background:var(--muted);flex-shrink:0}
     .dot.t{background:var(--accent);animation:blink .5s infinite}
     .dot.l{background:var(--accent2);animation:blink .7s infinite}
     .dot.s{background:var(--accent3);animation:blink 1s infinite}
+    .dot.e{background:var(--danger)}
     @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
-
-    #progress-wrap{width:100%;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;display:none;margin-top:8px}
-    #progress-bar{height:100%;width:0%;background:var(--accent);border-radius:4px;transition:width .3s}
-    .status-inner{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%}
-
+    .si{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%}
     .btn{width:100%;border-radius:var(--radius);border:none;cursor:pointer;font-family:'Atkinson Hyperlegible',sans-serif;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px;transition:transform .1s,filter .1s;-webkit-user-select:none;user-select:none}
     .btn:active{transform:scale(.96);filter:brightness(.85)}
     .btn .ico{font-size:42px;line-height:1}
@@ -46,80 +38,99 @@
     .btn:disabled{opacity:.4;cursor:not-allowed}
     @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-
     .preview-panel{display:none;border-radius:var(--radius);overflow:hidden;border:2px solid var(--surface2);background:#000;position:relative}
     .preview-panel.on{display:block}
-    #vid,#img-prev{width:100%;max-height:320px;object-fit:cover;display:block}
+    #vid,#imgp{width:100%;max-height:320px;object-fit:cover;display:block}
     .corners{position:absolute;inset:0;pointer-events:none}
     .c{position:absolute;width:44px;height:44px;border-color:var(--accent);border-style:solid;border-width:0;opacity:.9}
     .c.tl{top:16px;left:16px;border-top-width:4px;border-left-width:4px;border-radius:4px 0 0 0}
     .c.tr{top:16px;right:16px;border-top-width:4px;border-right-width:4px;border-radius:0 4px 0 0}
     .c.bl{bottom:16px;left:16px;border-bottom-width:4px;border-left-width:4px;border-radius:0 0 0 4px}
     .c.br{bottom:16px;right:16px;border-bottom-width:4px;border-right-width:4px;border-radius:0 0 4px 0}
-
-    .result-panel{background:var(--surface);border:2px solid var(--surface2);border-radius:var(--radius);padding:20px;display:none}
-    .result-panel.on{display:block}
-    .result-panel h2{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px}
-    #result-text{font-size:20px;line-height:1.8;white-space:pre-wrap}
-
-    .cmds{background:var(--surface);border:2px solid var(--surface2);border-radius:var(--radius);padding:16px 18px;margin-bottom:24px}
+    .rp{background:var(--surface);border:2px solid var(--surface2);border-radius:var(--radius);padding:20px;display:none}
+    .rp.on{display:block}
+    .rp h2{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px}
+    #rt{font-size:20px;line-height:1.8;white-space:pre-wrap}
+    .cmds{background:var(--surface);border:2px solid var(--surface2);border-radius:var(--radius);padding:16px 18px;margin-bottom:4px}
     .cmds h3{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px}
     .chips{display:flex;flex-wrap:wrap;gap:8px}
     .chip{background:var(--surface2);border-radius:50px;padding:7px 16px;font-size:14px;font-weight:700;color:var(--accent);border:1.5px solid #333}
     #canvas{display:none}
+
+    /* API KEY MODAL */
+    #modal{position:fixed;inset:0;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;z-index:999;padding:16px}
+    #modal.hidden{display:none}
+    .mbox{background:var(--surface);border:2px solid var(--accent);border-radius:var(--radius);padding:28px 22px;max-width:460px;width:100%;display:flex;flex-direction:column;gap:16px}
+    .mbox h2{font-size:22px;color:var(--accent)}
+    .mbox p{font-size:15px;color:var(--muted);line-height:1.6}
+    .mbox ol{font-size:15px;color:var(--text);line-height:2;padding-left:20px}
+    .mbox ol a{color:var(--accent2)}
+    .mbox input{width:100%;padding:14px 16px;font-size:16px;background:var(--surface2);border:2px solid #333;border-radius:12px;color:var(--text);font-family:monospace}
+    .mbox input:focus{outline:none;border-color:var(--accent)}
+    .mbox button{padding:16px;font-size:18px;font-weight:700;background:var(--accent);color:#000;border:none;border-radius:14px;cursor:pointer;font-family:'Atkinson Hyperlegible',sans-serif}
+    .mbox .note{font-size:12px;color:#555}
+    .mbox .demo-btn{background:var(--surface2);color:var(--muted);font-size:14px;padding:10px;border-radius:10px;border:1px solid #333;cursor:pointer;font-family:'Atkinson Hyperlegible',sans-serif}
   </style>
 </head>
 <body>
-<div id="app" role="main">
+
+<!-- API KEY MODAL -->
+<div id="modal">
+  <div class="mbox">
+    <h2>🔑 Ücretsiz OCR Anahtarı</h2>
+    <p>Metin okuma için <strong>OCR.space</strong> kullanılıyor. Tamamen ücretsiz, kredi kartı yok.</p>
+    <ol>
+      <li><a href="https://ocr.space/ocrapi" target="_blank">ocr.space/ocrapi</a> adresine git</li>
+      <li>Sayfayı aşağı kaydır → <strong>"Free OCR API"</strong></li>
+      <li>E-posta adresini gir → API anahtarı hemen gelir</li>
+    </ol>
+    <input type="password" id="key-input" placeholder="K81WZ..." autocomplete="off"/>
+    <button id="save-btn">KAYDET VE BAŞLA</button>
+    <button class="demo-btn" id="demo-btn">Demo anahtarla dene (günlük limit var)</button>
+    <p class="note">Anahtar yalnızca bu cihazda saklanır, hiçbir yere gönderilmez.</p>
+  </div>
+</div>
+
+<div id="app">
   <div class="header">
     <h1>👁 GÖR &amp; DUYUR</h1>
     <p>Etrafındaki yazıları fotoğrafla, sesini duy</p>
   </div>
-
   <div class="status-bar" id="sb" role="status" aria-live="polite">
     <span class="dot" id="dot"></span>
-    <div class="status-inner">
-      <span id="st">Yükleniyor...</span>
-      <div id="progress-wrap"><div id="progress-bar"></div></div>
-    </div>
+    <div class="si"><span id="st">Hazır — Fotoğraf çekebilirsin</span></div>
   </div>
-
-  <button class="btn btn-photo" id="btn-capture" aria-label="Fotoğraf çek" disabled>
+  <button class="btn btn-photo" id="bcap">
     <span class="ico">📷</span>
-    <span id="cap-lbl">FOTOĞRAF ÇEK</span>
+    <span id="caplbl">FOTOĞRAF ÇEK</span>
   </button>
-
-  <div class="preview-panel" id="preview">
+  <div class="preview-panel" id="prev">
     <video id="vid" autoplay playsinline muted></video>
     <canvas id="canvas"></canvas>
-    <img id="img-prev" alt="Çekilen fotoğraf" style="display:none" />
+    <img id="imgp" alt="Çekilen fotoğraf" style="display:none"/>
     <div class="corners">
       <div class="c tl"></div><div class="c tr"></div>
       <div class="c bl"></div><div class="c br"></div>
     </div>
   </div>
-
   <div class="row">
-    <button class="btn btn-voice" id="btn-voice" aria-label="Sesli komut">
+    <button class="btn btn-voice" id="bvoi">
       <span class="ico">🎤</span>
-      <span id="mic-lbl">SESLİ KOMUT</span>
+      <span id="miclbl">SESLİ KOMUT</span>
     </button>
-    <button class="btn btn-repeat" id="btn-repeat" aria-label="Tekrar oku" disabled>
+    <button class="btn btn-repeat" id="brep" disabled>
       <span class="ico">🔁</span>
       <span>TEKRAR OKU</span>
     </button>
   </div>
-
-  <button class="btn btn-stop" id="btn-stop" aria-label="Durdur" disabled>
+  <button class="btn btn-stop" id="bstp" disabled>
     <span class="ico">⏹</span>
     <span>DURDUR</span>
   </button>
-
-  <div class="result-panel" id="result-panel">
+  <div class="rp" id="rp">
     <h2>okunan metin</h2>
-    <div id="result-text" aria-live="polite"></div>
+    <div id="rt" aria-live="polite"></div>
   </div>
-
   <div class="cmds">
     <h3>Sesli Komutlar</h3>
     <div class="chips">
@@ -133,24 +144,45 @@
 </div>
 
 <script>
-const SB      = document.getElementById('sb');
-const ST      = document.getElementById('st');
-const DOT     = document.getElementById('dot');
-const PW      = document.getElementById('progress-wrap');
-const PB      = document.getElementById('progress-bar');
-const RP      = document.getElementById('result-panel');
-const RT      = document.getElementById('result-text');
-const PREV    = document.getElementById('preview');
-const VID     = document.getElementById('vid');
-const CANVAS  = document.getElementById('canvas');
-const IMGP    = document.getElementById('img-prev');
-const BCAP    = document.getElementById('btn-capture');
-const BVOI    = document.getElementById('btn-voice');
-const BREP    = document.getElementById('btn-repeat');
-const BSTP    = document.getElementById('btn-stop');
+const modal   = document.getElementById('modal');
+const keyInp  = document.getElementById('key-input');
+const saveBtn = document.getElementById('save-btn');
+const demoBtn = document.getElementById('demo-btn');
+const sb      = document.getElementById('sb');
+const st      = document.getElementById('st');
+const dot     = document.getElementById('dot');
+const rp      = document.getElementById('rp');
+const rt      = document.getElementById('rt');
+const prev    = document.getElementById('prev');
+const vid     = document.getElementById('vid');
+const cv      = document.getElementById('canvas');
+const imgp    = document.getElementById('imgp');
+const bcap    = document.getElementById('bcap');
+const bvoi    = document.getElementById('bvoi');
+const brep    = document.getElementById('brep');
+const bstp    = document.getElementById('bstp');
 
+let apiKey = localStorage.getItem('ocrspace_key') || '';
 let stream=null, lastText='', cameraOpen=false;
-let synth=window.speechSynthesis, trVoice=null, recog=null, worker=null;
+let synth=window.speechSynthesis, trVoice=null, recog=null;
+
+if(apiKey) modal.classList.add('hidden');
+
+saveBtn.addEventListener('click',()=>{
+  const k = keyInp.value.trim();
+  if(!k){ alert('Lütfen bir API anahtarı gir.'); return; }
+  apiKey = k;
+  localStorage.setItem('ocrspace_key', k);
+  modal.classList.add('hidden');
+  speak('Hoş geldiniz. Fotoğraf çek düğmesine basarak başlayabilirsiniz.');
+});
+
+demoBtn.addEventListener('click',()=>{
+  apiKey = 'helloworld';
+  localStorage.setItem('ocrspace_key','helloworld');
+  modal.classList.add('hidden');
+  speak('Demo mod etkin. Fotoğraf çek düğmesine basın.');
+});
 
 /* VOICES */
 function loadVoices(){ trVoice=synth.getVoices().find(v=>v.lang.startsWith('tr'))||null; }
@@ -158,49 +190,24 @@ loadVoices();
 if(speechSynthesis.onvoiceschanged!==undefined) speechSynthesis.onvoiceschanged=loadVoices;
 
 /* STATUS */
-function setStatus(msg, mode, prog){
-  ST.textContent = msg;
-  SB.className = 'status-bar'+(mode?' '+mode:'');
-  DOT.className = 'dot'+(mode==='loading'?' t':mode==='listening'?' l':mode==='success'?' s':'');
-  if(prog!=null){ PW.style.display='block'; PB.style.width=prog+'%'; }
-  else { PW.style.display='none'; }
+function setStatus(msg, mode){
+  st.textContent=msg;
+  sb.className='status-bar'+(mode?' '+mode:'');
+  dot.className='dot'+(mode==='loading'?' t':mode==='listening'?' l':mode==='success'?' s':mode==='error'?' e':'');
 }
 
 /* SPEAK */
 function speak(text, cb){
-  synth.cancel();
-  BSTP.disabled = false;
-  const u = new SpeechSynthesisUtterance(text);
-  if(trVoice) u.voice = trVoice;
-  u.lang='tr-TR'; u.rate=.95; u.pitch=1; u.volume=1;
-  u.onend  = ()=>{ BSTP.disabled=true; if(cb) cb(); };
-  u.onerror= ()=>{ BSTP.disabled=true; };
-  synth.speak(u);
-}
-
-/* TESSERACT — worker sadece createWorker'da logger alır */
-async function initWorker(){
-  if(worker) return;
-  setStatus('Dil dosyası yükleniyor...','loading',0);
   try{
-    worker = await Tesseract.createWorker(['tur','eng'], 1, {
-      logger: m => {
-        const p = Math.round((m.progress||0)*100);
-        if(m.status==='loading tesseract core')
-          setStatus('Tesseract yükleniyor... %'+p,'loading',p);
-        else if(m.status==='loading language traineddata')
-          setStatus('Dil dosyası indiriliyor... %'+p,'loading',p);
-        else if(m.status==='initializing tesseract')
-          setStatus('Başlatılıyor... %'+p,'loading',p);
-      }
-    });
-    setStatus('Hazır — Fotoğraf çekebilirsin','success');
-    BCAP.disabled = false;
-    speak('Hazır. Fotoğraf çek düğmesine basabilirsin.');
-  }catch(e){
-    setStatus('Yükleme hatası. Sayfayı yenile.','');
-    speak('Yükleme sırasında hata oluştu. Sayfayı yenile.');
-  }
+    synth.cancel();
+    bstp.disabled=false;
+    const u=new SpeechSynthesisUtterance(text);
+    if(trVoice) u.voice=trVoice;
+    u.lang='tr-TR'; u.rate=.95; u.pitch=1; u.volume=1;
+    u.onend=()=>{ bstp.disabled=true; if(cb) cb(); };
+    u.onerror=()=>{ bstp.disabled=true; if(cb) cb(); };
+    synth.speak(u);
+  }catch(e){ if(cb) cb(); }
 }
 
 /* CAMERA */
@@ -208,88 +215,118 @@ async function openCamera(){
   setStatus('Kamera açılıyor...','loading');
   speak('Kamera açılıyor. Yazıyı çerçeveye al ve tekrar bas.');
   try{
-    stream = await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080} }
-    });
-    VID.srcObject=stream; VID.style.display='block'; IMGP.style.display='none';
-    PREV.classList.add('on'); cameraOpen=true;
-    document.getElementById('cap-lbl').textContent='ÇEK!';
-    BCAP.querySelector('.ico').textContent='⚡';
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1920},height:{ideal:1080}}});
+    vid.srcObject=stream; vid.style.display='block'; imgp.style.display='none';
+    prev.classList.add('on'); cameraOpen=true;
+    document.getElementById('caplbl').textContent='ÇEK!';
+    bcap.querySelector('.ico').textContent='⚡';
     setStatus('Yazıyı çerçeveye al — tekrar bas','success');
   }catch(e){
-    setStatus('Kamera açılamadı.','');
+    setStatus('Kamera açılamadı.','error');
     speak('Kamera izni verilmedi. Tarayıcı ayarlarından kamera iznini aç.');
   }
 }
 
 async function takePhoto(){
   setStatus('Fotoğraf çekiliyor...','loading');
-  speak('Çekildi. Analiz ediliyor, bekle.');
-
-  CANVAS.width=VID.videoWidth; CANVAS.height=VID.videoHeight;
-  CANVAS.getContext('2d').drawImage(VID,0,0);
-  const dataUrl = CANVAS.toDataURL('image/jpeg',.92);
-
-  VID.style.display='none';
-  IMGP.src=dataUrl; IMGP.style.display='block';
+  speak('Çekildi. Metin okunuyor, bekle.');
+  cv.width=vid.videoWidth; cv.height=vid.videoHeight;
+  cv.getContext('2d').drawImage(vid,0,0);
+  const base64 = cv.toDataURL('image/jpeg',.95).split(',')[1];
+  vid.style.display='none';
+  imgp.src='data:image/jpeg;base64,'+base64; imgp.style.display='block';
   if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
   cameraOpen=false;
-  document.getElementById('cap-lbl').textContent='FOTOĞRAF ÇEK';
-  BCAP.querySelector('.ico').textContent='📷';
-
-  await recognizeText(dataUrl);
+  document.getElementById('caplbl').textContent='FOTOĞRAF ÇEK';
+  bcap.querySelector('.ico').textContent='📷';
+  await readText(base64);
 }
 
-/* OCR — recognize() sadece image alır, logger yok */
-async function recognizeText(imgData){
-  setStatus('Metin analiz ediliyor...','loading',10);
+/* OCR.SPACE API */
+async function readText(base64){
+  setStatus('Metin analiz ediliyor...','loading');
   try{
-    const result = await worker.recognize(imgData);
-    const text = (result.data.text||'').trim();
+    const fd = new FormData();
+    fd.append('base64Image','data:image/jpeg;base64,'+base64);
+    fd.append('language','tur');
+    fd.append('isOverlayRequired','false');
+    fd.append('detectOrientation','true');
+    fd.append('scale','true');
+    fd.append('OCREngine','2');
+    fd.append('apikey', apiKey);
 
-    if(!text || text.length < 2){
-      const msg='Fotoğrafta okunabilir metin bulunamadı. Daha yakından veya daha net dene.';
-      setStatus(msg,''); speak(msg); return;
+    const res = await fetch('https://api.ocr.space/parse/image',{ method:'POST', body:fd });
+    const data = await res.json();
+
+    if(!data.ParsedResults || data.ParsedResults.length===0 || data.IsErroredOnProcessing){
+      const errMsg = data.ErrorMessage?.[0] || 'Metin okunamadı.';
+      // Türkçe başarısızsa İngilizce dene
+      if(fd.get('language')==='tur'){
+        await readTextEng(base64); return;
+      }
+      setStatus(errMsg,'error'); speak('Metin okunamadı. Daha iyi ışıkta veya daha yakından dene.'); return;
     }
 
-    lastText = text;
-    RT.textContent = text;
-    RP.classList.add('on');
-    BREP.disabled = false;
-    setStatus('Okunuyor...','success');
-    speak(text, ()=>setStatus('Tamamlandı. Tekrar için "Tekrar Oku"ya bas.','success'));
+    const text = data.ParsedResults.map(r=>r.ParsedText).join('\n').trim();
+    if(!text || text.length < 2){
+      await readTextEng(base64); return;
+    }
+
+    showResult(text);
   }catch(e){
-    const msg='Metin okunamadı, tekrar dene.';
-    setStatus(msg,''); speak(msg);
+    setStatus('Bağlantı hatası.','error');
+    speak('Sunucuya ulaşılamadı. İnternet bağlantını kontrol et.');
     console.error(e);
   }
 }
 
-/* VOICE COMMANDS */
+async function readTextEng(base64){
+  try{
+    const fd = new FormData();
+    fd.append('base64Image','data:image/jpeg;base64,'+base64);
+    fd.append('language','eng');
+    fd.append('isOverlayRequired','false');
+    fd.append('detectOrientation','true');
+    fd.append('scale','true');
+    fd.append('OCREngine','2');
+    fd.append('apikey', apiKey);
+    const res = await fetch('https://api.ocr.space/parse/image',{ method:'POST', body:fd });
+    const data = await res.json();
+    const text = data.ParsedResults?.map(r=>r.ParsedText).join('\n').trim() || '';
+    if(!text || text.length < 2){
+      setStatus('Metin bulunamadı.','error');
+      speak('Fotoğrafta okunabilir metin bulunamadı. Daha yakından ve iyi ışıkta dene.');
+      return;
+    }
+    showResult(text);
+  }catch(e){
+    setStatus('Hata.','error'); speak('Bir hata oluştu, tekrar dene.');
+  }
+}
+
+function showResult(text){
+  lastText=text;
+  rt.textContent=text; rp.classList.add('on'); brep.disabled=false;
+  setStatus('Okunuyor...','success');
+  speak(text,()=>setStatus('Tamamlandı.','success'));
+}
+
+/* VOICE RECOGNITION */
 function setupRecog(){
-  const SR = window.SpeechRecognition||window.webkitSpeechRecognition;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){ speak('Bu tarayıcı sesli komutları desteklemiyor.'); return null; }
   const r=new SR(); r.lang='tr-TR'; r.continuous=false; r.interimResults=false;
-  r.onresult = e => handleCmd(e.results[0][0].transcript.toLowerCase().trim());
-  r.onend = ()=>{
-    BVOI.classList.remove('rec');
-    document.getElementById('mic-lbl').textContent='SESLİ KOMUT';
-    setStatus('Hazır','');
-  };
-  r.onerror = e=>{
-    BVOI.classList.remove('rec');
-    document.getElementById('mic-lbl').textContent='SESLİ KOMUT';
-    if(e.error!=='no-speech') speak('Anlaşılamadı, tekrar dene.');
-  };
+  r.onresult=e=>handleCmd(e.results[0][0].transcript.toLowerCase().trim());
+  r.onend=()=>{ bvoi.classList.remove('rec'); document.getElementById('miclbl').textContent='SESLİ KOMUT'; setStatus('Hazır',''); };
+  r.onerror=e=>{ bvoi.classList.remove('rec'); document.getElementById('miclbl').textContent='SESLİ KOMUT'; if(e.error!=='no-speech') speak('Anlaşılamadı, tekrar dene.'); };
   return r;
 }
 
 function handleCmd(cmd){
   if(cmd.includes('fotoğraf')||cmd.includes('çek')||cmd.includes('tara')){
     if(!cameraOpen) openCamera(); else takePhoto();
-  } else if(cmd.includes('tekrar')||cmd.includes('ne yazıyor')||cmd.includes('söyle')){
-    if(lastText) speak(lastText);
-    else speak('Henüz okunmuş metin yok. Önce fotoğraf çek.');
+  } else if(cmd.includes('tekrar')||cmd.includes('ne yazıyor')||cmd.includes('söyle')||cmd.includes('oku')){
+    if(lastText) speak(lastText); else speak('Henüz okunmuş metin yok. Önce fotoğraf çek.');
   } else if(cmd.includes('durdur')||cmd.includes('dur')||cmd.includes('kes')){
     synth.cancel(); setStatus('Durduruldu','');
   } else if(cmd.includes('yardım')){
@@ -299,26 +336,22 @@ function handleCmd(cmd){
   }
 }
 
-/* BUTTONS */
-BCAP.addEventListener('click',()=>{ if(!cameraOpen) openCamera(); else takePhoto(); });
-
-BVOI.addEventListener('click',()=>{
+bcap.addEventListener('click',()=>{ if(!cameraOpen) openCamera(); else takePhoto(); });
+bvoi.addEventListener('click',()=>{
   if(!recog) recog=setupRecog();
   if(!recog) return;
   synth.cancel();
-  BVOI.classList.add('rec');
-  document.getElementById('mic-lbl').textContent='DİNLİYOR...';
+  bvoi.classList.add('rec');
+  document.getElementById('miclbl').textContent='DİNLİYOR...';
   setStatus('Seni dinliyorum...','listening');
   speak('Komutunu söyle.',()=>{ try{ recog.start(); }catch(e){} });
 });
+brep.addEventListener('click',()=>{ if(lastText) speak(lastText); });
+bstp.addEventListener('click',()=>{ synth.cancel(); bstp.disabled=true; setStatus('Durduruldu',''); });
 
-BREP.addEventListener('click',()=>{ if(lastText) speak(lastText); });
-BSTP.addEventListener('click',()=>{ synth.cancel(); BSTP.disabled=true; setStatus('Durduruldu',''); });
-
-/* INIT — sayfa açılınca worker'ı hemen başlat */
-speak('Hoş geldiniz. Dil dosyası yükleniyor, lütfen bekle.', ()=>{
-  initWorker();
-});
+if(apiKey){
+  setTimeout(()=>speak('Hoş geldiniz. Fotoğraf çek düğmesine basarak başlayabilirsiniz.'),500);
+}
 </script>
 </body>
 </html>
